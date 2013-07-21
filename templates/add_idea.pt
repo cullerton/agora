@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" xmlns:tal="http://xml.zope.org/namespaces/tal">
+<head>
+    <title tal:content="project">Project</title>
+    
+    <!-- this is boilerplate from pyramid? -->
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <meta name="keywords" content="python web application" />
+    <meta name="description" content="YA simple application to manage simple site deployment" />
+    <meta name="viewport" content="initial-scale=1.0">
+
+    <!-- this is my stuff -->
+    <link rel="stylesheet" href="${request.static_url('agora:static/agora.css')}" type="text/css" media="screen" charset="utf-8" />
+    <script src="${request.static_url('agora:static/agora.js')}"></script>
+    <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+</head>
+
+<body>
+
+    <div id="wrap">
+    
+        <div id='header'>
+            <h1><a tal:attributes="href home_url"><span tal:content="project">Project</span></a></h1>
+        </div>
+        
+        <div id='add-idea'>
+            <div><span>Add Idea</span></div>
+        </div>
+        
+        <div id='main'>
+
+        <div id="add-idea">
+            <form action="${save_url}" method="post">
+                <input name='title' type='text' tal:attributes="value idea.title">
+                <br />
+                <textarea name="intro" 
+                          tal:content="idea.intro" 
+                          rows="5"
+                          cols="60"/>
+                <br />
+                <textarea name="body" 
+                          tal:content="idea.body" 
+                          rows="15"
+                          cols="60"/>
+                <br />
+                <input type="submit" name="form.submitted" value="Save"/>
+                <input tal:define="javascriptstring string:window.location.href='${home_url}';" type="button" name="cancel" value="Cancel" tal:attributes="onClick string:return ${javascriptstring};" />
+            </form>
+        </div>
+
+  <div id="footer">
+    <div class="footer"
+         >&copy; Copyright 2013, Cullerton Consulting.</div>
+
+  </div>
+
+</body>
+</html>
