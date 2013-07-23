@@ -48,15 +48,17 @@ class Idea(Base):
     title = Column(Text, unique=True)
     intro = Column(Text)
     body = Column(Text)
+    parent = Column(Integer, ForeignKey("ideas.id"))
     category_id = Column(Integer, ForeignKey("categories.id"))
     created = Column(DateTime, default=datetime.datetime.now)
     modified = Column(DateTime, default=datetime.datetime.now)
 
-    def __init__(self, id, title, intro, body, category_id, created, modified):
+    def __init__(self, id, title, intro, body, parent, category_id, created, modified):
         self.id = id
         self.title = title
         self.intro = intro
         self.body = body
+        self.parent = parent
         self.category_id = category_id
         self.created = created
         self.modified = modified
