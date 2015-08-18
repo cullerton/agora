@@ -7,15 +7,15 @@ from sqlalchemy import (
     Text,
     ForeignKey,
     UniqueConstraint,
-    Index,
-    )
+    # Index,
+)
 
 from sqlalchemy.ext.declarative import declarative_base
 
 from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
-    )
+)
 
 from zope.sqlalchemy import ZopeTransactionExtension
 
@@ -28,19 +28,21 @@ class Tag(Base):
     __tablename__ = 'tags'
     id = Column(Integer, primary_key=True)
     name = Column(Text, unique=True)
-    
+
     def __init__(self, name):
         self.name = name
-        
+
+
 class Category(Base):
     """"""
     __tablename__ = 'categories'
     id = Column(Integer, primary_key=True)
     name = Column(Text, unique=True)
-    
+
     def __init__(self, name):
         self.name = name
-        
+
+
 class Idea(Base):
     """"""
     __tablename__ = 'ideas'
@@ -67,13 +69,13 @@ class Idea(Base):
 class IdeaTag(Base):
     """"""
     __tablename__ = 'idea_tags'
-    __table_args__ = (UniqueConstraint('idea_id','tag_id'),)
+    __table_args__ = (UniqueConstraint('idea_id', 'tag_id'),)
     id = Column(Integer, primary_key=True)
     idea_id = Column(Text, ForeignKey("ideas.id"))
     tag_id = Column(Integer, ForeignKey("tags.id"))
-    
-    
+
+
     def __init__(self, idea_id, tag_id):
         self.idea_id = idea_id
         self.tag_id = tag_id
-        
+
