@@ -1,16 +1,13 @@
-from pyramid.httpexceptions import HTTPFound, HTTPNotFound
+from pyramid.httpexceptions import HTTPFound
 from pyramid.renderers import get_renderer
-from pyramid.response import Response
 from pyramid.view import view_config
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy.sql import select
-from unicodedata import normalize
 
 from logging import getLogger
 logger = getLogger(__name__)
 
 from .models import DBSession, Idea
 from .agora import agora_utils
+
 
 def site_layout():
     renderer = get_renderer("templates/main_template.pt")
@@ -25,19 +22,21 @@ def site_layout():
 
 @view_config(route_name='agora', renderer='templates/agora.pt')
 class agora_view(object, agora_utils):
+    """This is the front page view."""
 
     def __init__(self, request):
         logger.info("agora_view: __init__: ")
         self.request = request
-        site_location = request.registry.settings['site_location']
+        # site_location = request.registry.settings['site_location']
         self.view_params = {'site_name': request.registry.settings['site_name'],
-                            'description': request.registry.settings['site_description'],
+                            'description': request.registry.settings[
+                                'site_description'],
                             'home_url': request.route_url('agora'),
                             'add_idea_url': request.route_url('add_idea')}
 
     def __call__(self):
         """'Home Page' for Agora
-            retrieves the most recent ideas and 
+            retrieves the most recent ideas and
             returns them in the response
         """
         logger.info("agora_view: __call__: ")
@@ -49,14 +48,17 @@ class agora_view(object, agora_utils):
         # view_params['footer'] = get_footer()
         return view_params
 
+
 @view_config(route_name='add_idea', renderer='templates/add_idea.pt')
 class add_idea(object, agora_utils):
+    """Add an idea"""
 
     def __init__(self, request):
         logger.info("add_idea: __init__: ")
         self.request = request
         self.view_params = {'site_name': request.registry.settings['site_name'],
-                            'description': request.registry.settings['site_description'],
+                            'description': request.registry.settings[
+                                'site_description'],
                             'home_url': request.route_url('agora')}
 
     def __call__(self):
@@ -76,26 +78,32 @@ class add_idea(object, agora_utils):
                 logger.info("add_idea: __call__: Exception: %s" % str(e))
                 pass
             else:
-                redirect_url = self.request.route_url('idea_view', self.request, idea=id)
-                logger.info("add_idea: __call__: redirect_url: %s" % str(redirect_url))
-                return HTTPFound(location = redirect_url)
+                redirect_url = self.request.route_url(
+                    'idea_view', self.request, idea=id)
+                logger.info("add_idea: __call__: redirect_url: %s" % str(
+                    redirect_url))
+                return HTTPFound(location=redirect_url)
 
         save_url = self.request.route_url('add_idea')
-        idea = Idea('','', '', '',0,None,None)
+        idea = Idea('', '', '', '', 0, None, None)
         view_params['save_url'] = save_url
         view_params['idea'] = idea
         return view_params
 
+
 @view_config(route_name='idea_view', renderer='templates/idea_view.pt')
 class idea_view(object, agora_utils):
+    """View an idea"""
 
     def __init__(self, request):
         logger.info("idea_view: __init__: ")
         self.request = request
         site_location = request.registry.settings['site_location']
-        logger.info("idea_view: __init__: site_location: %s" % str(site_location))
+        logger.info("idea_view: __init__: site_location: %s" % str(
+            site_location))
         self.view_params = {'site_name': request.registry.settings['site_name'],
-                            'description': request.registry.settings['site_description'],
+                            'description': request.registry.settings[
+                                'site_description'],
                             'home_url': request.route_url('agora')}
 
     def __call__(self):
@@ -106,4 +114,3 @@ class idea_view(object, agora_utils):
         idea = self.getIdeaById(id)
         view_params['idea'] = idea
         return view_params
-
