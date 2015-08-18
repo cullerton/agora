@@ -1,8 +1,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" xmlns:tal="http://xml.zope.org/namespaces/tal">
 <head>
-    <title tal:content="project">Project</title>
-    
+    <title tal:content="site_name">Site Name</title>
+
     <!-- this is boilerplate from pyramid? -->
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
     <meta name="keywords" content="python web application" />
@@ -18,28 +18,28 @@
 <body>
 
     <div id="wrap">
-    
+
         <div id='header'>
-            <h1><a tal:attributes="href home_url"><span tal:content="project">Project</span></a></h1>
+            <h1><a tal:attributes="href home_url"><span tal:content="site_name">Site Name</span></a></h1>
         </div>
-        
+
         <div id='add-idea'>
             <div><span>Add Idea</span></div>
         </div>
-        
+
         <div id='main'>
 
         <div id="add-idea">
             <form action="${save_url}" method="post">
                 <input name='title' type='text' tal:attributes="value idea.title">
                 <br />
-                <textarea name="intro" 
-                          tal:content="idea.intro" 
+                <textarea name="intro"
+                          tal:content="idea.intro"
                           rows="5"
                           cols="60"/>
                 <br />
-                <textarea name="body" 
-                          tal:content="idea.body" 
+                <textarea name="body"
+                          tal:content="idea.body"
                           rows="15"
                           cols="60"/>
                 <br />

@@ -1,8 +1,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" xmlns:tal="http://xml.zope.org/namespaces/tal">
 <head>
-    <title tal:content="project">Project</title>
-    
+    <title tal:content="site_name">Site Name</title>
+
     <!-- this is boilerplate from pyramid? -->
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
     <meta name="keywords" content="python web application" />
@@ -22,7 +22,7 @@
         <div id='header'>
             <h1>
                 <a tal:attributes="href home_url">
-                    <span tal:content="project">Project</span>
+                    <span tal:content="site_name">Site Name</span>
                 </a>
             </h1>
             <div id='page-title'>
@@ -38,7 +38,7 @@
                 <div id='idea-intro'><span tal:content="idea.intro">Intro</span></div>
                 <div id='ideaody-title'><span tal:content="idea.body">Body</span></div>
             </div>
-        
+
         </div>
 
         <br />
