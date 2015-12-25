@@ -1,3 +1,5 @@
-Agora is a forum for ideas. It is developed for a class curriculum, and is not intended for real deployment, although it could serve some purpose.
+Agora is a forum for ideas. It is a simple blog-like application developed for a class curriculum, and is not intended for real deployment, although it could serve some purpose.
 
-This code can be paire with agora.api to create a restful http api.
+Agora uses SQLAlchemy for a persistence layer. There are two classes--Author and Idea, that have a one-to-many/many-to-one relationship. Author.ideas are Idea.ids and Idea.author is an Author.id.
+
+Agora can be paired with agora.api to create a restful http api.
