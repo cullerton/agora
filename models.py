@@ -1,4 +1,8 @@
-import datetime
+#
+# sqlalchemy models for agora
+#
+
+from datetime import datetime
 
 from sqlalchemy import (
     Column,
@@ -16,9 +20,6 @@ from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
-from logging import getLogger
-logger = getLogger(__name__)
-
 
 class Idea(Base):
     """"""
@@ -27,21 +28,24 @@ class Idea(Base):
     title = Column(Text, unique=True)
     idea = Column(Text)
     visible = Column(Boolean, default=False)
-    created = Column(DateTime, default=datetime.datetime.now())
-    modified = Column(DateTime, default=datetime.datetime.now())
+    created = Column(DateTime, default=datetime.now())
+    modified = Column(DateTime, default=datetime.now())
     author_id = Column(Integer, ForeignKey('authors.id'))
 
     author = relationship("Author", back_populates="ideas")
 
-    def __init__(self, title, idea):
+    def __init__(self, title, idea, author):
         self.title = title
         self.idea = idea
+        self.author = author
 
     def __repr__(self):
         return "%s" % (self.title)
 
     def to_dict(self):
-        return {'title': self.title, 'idea': self.idea, 'author': self.author}
+        return {'title': self.title,
+                'idea': self.idea,
+                'author': str(self.author)}
 
 
 class Author(Base):
@@ -52,7 +56,7 @@ class Author(Base):
     fullname = Column(Text, default='Anonymous')
     email = Column(Text)
     active = Column(Boolean, default=False)
-    created = Column(DateTime, default=datetime.datetime.now())
+    created = Column(DateTime, default=datetime.now())
 
     ideas = relationship("Idea", order_by=Idea.id, back_populates="author")
 
@@ -64,3 +68,12 @@ class Author(Base):
     def __repr__(self):
         return "%s, %s" % (self.fullname, self.created.strftime("%B %d, %Y")
                            if self.created else self.created)
+
+    def to_dict(self):
+        return {'username': self.username,
+                'fullname': self.fullname,
+                'email': self.email,
+                'active': str(self.active),
+                'created': str(self.created)}
+
+__all__ = ['Author', 'Idea', 'Base']
