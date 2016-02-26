@@ -24,11 +24,11 @@ def main(argv=sys.argv):
     DBSession.configure(bind=engine)
     Base.metadata.create_all(engine)
     with transaction.manager:
-        author = Author(username='michaelc', fullname='mike cullerton',
-                        email='michaelc@cullerton.com')
+        author = Author(username='shmoe', fullname='Joe Shmoe',
+                        email='shmoe@domain.com')
         DBSession.add(author)
     with transaction.manager:
-        author = DBSession.query(Author).filter_by(username='michaelc').one()
+        author = DBSession.query(Author).filter_by(username='shmoe').one()
         idea = Idea(title='First Idea!', idea='This is my idea.',
                     author=author)
         DBSession.add(idea)
