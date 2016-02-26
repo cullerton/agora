@@ -2,4 +2,11 @@ Agora is a forum for ideas. It is a simple blog-like application developed for a
 
 Agora uses SQLAlchemy for a persistence layer. There are two classes--Author and Idea, that have a one-to-many/many-to-one relationship. Author.ideas are Idea.ids and Idea.author is an Author.id.
 
-Agora can be paired with agora.api to create a restful http api.
+You must pass an SQLAlchemy session to initialize agora. An example session is provided in session.py.
+
+Usage:
+
+>>> from agora import Agora, DBSession
+>>> forum = Agora(DBSession)
+>>> forum.get_ideas()
+[First Idea!, Another Idea!]
