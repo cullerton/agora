@@ -56,3 +56,7 @@ class EditIdea(Exception):
 
 class EditAuthor(Exception):
     pass
+
+__all__ = ['AddItem', 'AddIdea', 'AddAuthor', 'DeleteItem', 'DeleteIdea',
+           'DeleteAuthor', 'DuplicateIdea', 'DuplicateAuthor', 'EditIdea',
+           'EditAuthor', 'InvalidItem', 'InvalidIdea', 'InvalidAuthor']

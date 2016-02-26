@@ -1,12 +1,7 @@
 import transaction
 
 from .models import Idea, Author
-from .exceptions import (AddItem, AddIdea, AddAuthor,
-                         DeleteItem, DeleteIdea, DeleteAuthor,
-                         DuplicateIdea, DuplicateAuthor,
-                         EditIdea, EditAuthor,
-                         InvalidItem, InvalidIdea, InvalidAuthor
-                         )
+from .exceptions import *
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
@@ -19,13 +14,13 @@ ideas_limit = 5
 
 class AgoraBase():
 
-    def _get_item_count(self, table):
-        try:
-            item_count = self.session.query(table).count()
-        except:
-            raise
+    # def _get_item_count(self, table):
+    #     try:
+    #         item_count = self.session.query(table).count()
+    #     except:
+    #         raise
 
-        return item_count
+    #     return item_count
 
     def _get_item_by_id(self, table, id):
         try:
@@ -86,6 +81,9 @@ class AgoraBase():
 
 class Agora(AgoraBase):
 
+    """python 'api' to database of ideas
+       ideas have an author"""
+
     def __init__(self, session):
         """add the SQLAlchemy database session"""
         self.session = session
@@ -96,13 +94,6 @@ class Agora(AgoraBase):
     # Authors
     #
 
-    # def get_author_count(self):
-    #     try:
-    #         author_count = self._get_item_count(Author)
-    #     except Exception as e:
-    #         return e
-    #     return author_count
-
     def get_authors(self, limit=5):
         if not isinstance(limit, int) or limit < 0:
             limit = self.authors_limit
@@ -111,11 +102,9 @@ class Agora(AgoraBase):
             authors = self._get_items(Author, limit)
         except Exception as e:
             logger.info("get_authors: except: e: %s" % e)
-            return e
+            raise
         logger.info("get_authors: type(authors): %s " % type(authors))
         return authors
-
-        # return self._get_items(Author, limit)
 
     def get_author(self, id):
         try:
@@ -137,13 +126,13 @@ class Agora(AgoraBase):
             pass
         else:
             # the author already exists
-            return DuplicateAuthor
+            raise DuplicateAuthor
 
         # the author does not already exist, attempt to add the author
         try:
             new_author_id = self._add_item(Author, filters, **kwargs)
         except:
-            return AddAuthor
+            raise AddAuthor
 
         return new_author_id
 
@@ -156,8 +145,7 @@ class Agora(AgoraBase):
                     try:
                         setattr(author, key, value)
                     except:
-                        # should we raise a custom error?
-                        return EditAuthor
+                        raise EditAuthor
         test_author = self.session.query(Author).filter_by(id=id).one()
         return test_author.id
 
@@ -167,22 +155,14 @@ class Agora(AgoraBase):
         try:
             self._delete_item(Author, id)
         except DeleteItem:
-            return DeleteAuthor
+            raise DeleteAuthor
         except InvalidItem:
-            return InvalidIdea
+            raise InvalidAuthor
         return id
 
     #
     # Ideas
     #
-
-    # def get_idea_count(self):
-    #     """return count of ideas in the database"""
-    #     try:
-    #         idea_count = self._get_item_count(Idea)
-    #     except Exception as e:
-    #         return e
-    #     return idea_count
 
     def get_ideas(self, limit=5):
         """list of most recent ideas"""
@@ -193,7 +173,7 @@ class Agora(AgoraBase):
             ideas = self._get_items(Idea, limit)
         except Exception as e:
             logger.info("get_ideas: except: e: %s" % e)
-            return e
+            raise e
         return ideas
 
     def get_idea(self, id):
@@ -201,18 +181,25 @@ class Agora(AgoraBase):
         try:
             idea = self._get_item_by_id(Idea, id)
         except InvalidItem:
-            return InvalidIdea
+            raise InvalidIdea
 
         return idea
 
-    def add_idea(self, title, idea):
+    def add_idea(self, title, idea, author_id):
         """add an idea to the database
            return id of new entry
            return DuplicateIdea if idea already exists
            return AddIdea if an error occurs"""
 
+        try:
+            author = self._get_item_by_id(Author, author_id)
+        except InvalidItem:
+            raise InvalidAuthor
         filters = {'title': title}
-        kwargs = {'title': title, 'idea': idea}
+        kwargs = {'title': title,
+                  'idea': idea,
+                  'author': author,
+                  }
 
         # check whether the idea already exists
         try:
@@ -222,13 +209,16 @@ class Agora(AgoraBase):
             pass
         else:
             # the idea already exists
-            return DuplicateIdea
+            raise DuplicateIdea
 
         # the idea does not already exist, attempt to add the idea
         try:
             new_idea_id = self._add_item(Idea, filters, **kwargs)
-        except:
-            return AddIdea
+        except InvalidItem:
+            raise InvalidIdea
+        except Exception as e:
+            logger.info("add_idea: Exception: %s" % str(e))
+            raise
 
         return new_idea_id
 
@@ -264,22 +254,4 @@ class Agora(AgoraBase):
         # result should be the same as id
         return result
 
-    # def get_idea_by_title(self, title):
-    #     """return the requested idea as a dictionary"""
-    #     logger.info("get_idea_by_title: title: %s" % title)
-    #     try:
-    #         filters = {'title': title}
-    #         idea = self._get_item_by_filter(Idea, **filters)
-    #     except NoResultFound:
-    #         return NoResultFound
-    #     except MultipleResultsFound:
-    #         return MultipleResultsFound
-
-    #     # try:
-    #     #     result = self.session.query(Idea).filter_by(title=title).one()
-    #     # except NoResultFound:
-    #     #     idea = None
-    #     # else:
-    #     #     idea = {'title': result.title, 'idea': result.idea}
-
-    #     return idea
+__all__ = ['Agora']
