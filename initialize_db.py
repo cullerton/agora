@@ -5,33 +5,44 @@ import transaction
 from sqlalchemy import create_engine
 
 from .models import Idea, Author, Base
-
-from . import DBSession
+from .session import DBSession
 
 
 def usage(argv):
     cmd = os.path.basename(argv[0])
     print('usage: %s <database_uri>\n'
-          '(example: "%s sqlite:///:memory:")' % (cmd, cmd))
+          '(example: "%s sqlite:///agora.sqlite")\n'
+          'to seed the database: "%s <database_uri> seed\n'
+          '(example: "%s sqlite:///agora.sqlite seed")\n'
+          % (cmd, cmd, cmd, cmd))
     sys.exit(1)
 
 
 def main(argv=sys.argv):
-    if len(argv) != 2:
+    if not 2 <= len(argv) <= 3:
         usage(argv)
     database_uri = argv[1]
+    seed = argv[2] if len(argv) > 2 else False
+
     engine = create_engine(database_uri)
     DBSession.configure(bind=engine)
     Base.metadata.create_all(engine)
-    with transaction.manager:
-        author = Author(username='shmoe', fullname='Joe Shmoe',
-                        email='shmoe@domain.com')
-        DBSession.add(author)
-    with transaction.manager:
-        author = DBSession.query(Author).filter_by(username='shmoe').one()
-        idea = Idea(title='First Idea!', idea='This is my idea.',
-                    author=author)
-        DBSession.add(idea)
-        idea = Idea(title='Another Idea!', idea='This is another idea.',
-                    author=author)
-        DBSession.add(idea)
+
+    if seed == 'seed':
+        with transaction.manager:
+            author = Author(username='misinformation',
+                            fullname='Miss Information',
+                            email='misinformation@example.com')
+            DBSession.add(author)
+
+        with transaction.manager:
+            author = DBSession.query(Author).filter_by(
+                username='misinformation').one()
+            idea = Idea(title='First Idea!',
+                        idea='This is my idea.',
+                        author=author)
+            DBSession.add(idea)
+            idea = Idea(title='Another Idea!',
+                        idea='This is another idea.',
+                        author=author)
+            DBSession.add(idea)
