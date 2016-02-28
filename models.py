@@ -12,6 +12,7 @@ from sqlalchemy import (
     Sequence,
     Boolean,
     ForeignKey,
+    UniqueConstraint
 )
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -25,12 +26,14 @@ class Idea(Base):
     """"""
     __tablename__ = 'ideas'
     id = Column(Integer, Sequence('idea_id_seq'), primary_key=True)
-    title = Column(Text, unique=True)
+    title = Column(Text)
     idea = Column(Text)
     visible = Column(Boolean, default=False)
     created = Column(DateTime, default=datetime.now())
     modified = Column(DateTime, default=datetime.now())
     author_id = Column(Integer, ForeignKey('authors.id'))
+
+    UniqueConstraint('title', 'author_id', name='unique_title')
 
     author = relationship("Author", back_populates="ideas")
 
@@ -40,7 +43,7 @@ class Idea(Base):
         self.author = author
 
     def __repr__(self):
-        return "%s" % (self.title)
+        return "%s, %s" % (self.title, self.author)
 
     def to_dict(self):
         return {'title': self.title,
