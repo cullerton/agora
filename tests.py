@@ -1,255 +1,286 @@
 import unittest
-import transaction
+
 from logging import getLogger
 logger = getLogger(__name__)
 
-from pyramid import testing
+
+def _populate_test_db(session):
+    from agora.models import Author, Idea
+
+    # add 2 authors
+    [session.add(Author(
+        'user_%s' % author,
+        'User %s' % author,
+        'user_%s@example.com' % author))
+        for author in range(1, 3)]
+
+    # add 3 ideas for each of the authors
+    [[session.add(Idea(
+        'Idea %s' % idea,
+        'This is idea number %s' % idea,
+        session.query(Author).filter_by(id=author_id).one()))
+        for idea in range(1, 4)]
+        for author_id in range(1, session.query(Author).count() + 1)]
 
 
-def _initTestingDB():
+def _initialize_test_db():
+
+    from agora.models import Base
+
     from sqlalchemy import create_engine
-    from agora import (
-        DBSession,
-        Idea,
-        Author,
-        Base
-    )
-    engine = create_engine('sqlite://')
+    from sqlalchemy.orm import scoped_session, sessionmaker
+
+    engine = create_engine('sqlite:///:memory:')
     Base.metadata.create_all(engine)
+
+    DBSession = scoped_session(sessionmaker())
     DBSession.configure(bind=engine)
-    with transaction.manager:
-        author = Author('some_user', 'Full Name', 'username@company.com')
-        DBSession.add(author)
-    with transaction.manager:
-        author = DBSession.query(Author).filter_by(username='some_user').one()
-        idea = Idea(title='First Idea!',
-                    idea='This is the first idea.', author=author)
-        DBSession.add(idea)
-        idea = Idea(title='YA Idea!',
-                    idea='This is YA idea.', author=author)
-        DBSession.add(idea)
-        idea = Idea(title='Third Idea!',
-                    idea='This is the third idea.', author=author)
-        DBSession.add(idea)
-        idea = Idea(title='My Idea!',
-                    idea='This is my idea.', author=author)
-        DBSession.add(idea)
-        idea = Idea(title='Fifth Idea!',
-                    idea='This is the fifth idea.', author=author)
-        DBSession.add(idea)
-        idea = Idea(title='An Idea!',
-                    idea='This is an idea.', author=author)
-        DBSession.add(idea)
+
+    _populate_test_db(DBSession)
+
     return DBSession
 
 
-# class DBTests(unittest.TestCase):
+class AgoraBase(unittest.TestCase):
 
-#     def setUp(self):
-#         self.config = testing.setUp()
-
-#     def tearDown(self):
-#         testing.tearDown()
-
-#     def test_initialize_db(self):
-#         database_uri = "sqlite:///:memory:"
-
-#         from agora import Idea
-#         from os import getcwd
-#         from os.path import join
-
-#         call_path = join(getcwd(), '..', 'env-35/bin/initialize_agora_db')
-#         logger.info("test_initialize_db: call_path: %s" % call_path)
-
-#         from subprocess import call
-#         # call_string = "%s/agora/initialize_db.py %s" % (getcwd(), database_uri)
-#         # call_string = "%s/../env-35/bin/initialize_agora %s" % (getcwd(), database_uri)
-#         # call_string = "%s", "%s" % (call_path, database_uri)
-#         session = call([call_path, database_uri])
-
-#         ideas = session.query(Idea)
-#         self.assertIs(ideas, list)
-
-
-class AgoraTests(unittest.TestCase):
     def setUp(self):
-        self.session = _initTestingDB()
-        self.config = testing.setUp()
+        self.session = _initialize_test_db()
 
     def tearDown(self):
-        testing.tearDown()
         self.session.remove()
 
     def _Agora(self):
-        from agora.agora import Agora
+        from agora import Agora
         return Agora(self.session)
 
-    #
-    # Authors
-    #
 
-    # def test_get_author_count(self):
+class AgoraAuthorTests(AgoraBase):
 
-    #     agora = self._Agora()
-    #     count = agora.get_author_count()
-
-    #     self.assertEqual(count, 1)
-
-    def test_get_authors_no_limit(self):
-
+    def test_get_author_count(self):
+        """should return a scalar
+           equal to the number of records added in _initialize_test_db"""
         agora = self._Agora()
+        self.assertEqual(agora.get_author_count(), 2)
+
+    def test_get_authors(self):
+        """should return a list of length author_count"""
+        agora = self._Agora()
+        author_count = agora.get_author_count()
         authors = agora.get_authors()
 
-        self.assertEqual(len(authors), 1)
+        self.assertIsInstance(authors, list)
+        self.assertEqual(len(authors), author_count)
 
     def test_get_authors_with_limit(self):
+        """should return a list of length limit"""
         agora = self._Agora()
+        author_count = agora.get_author_count()
 
-        # author_count = agora.get_author_count()
+        for limit in (0, 1, author_count):
 
-        authors = agora.get_authors(0)
-        self.assertEqual(len(authors), 0)
+            authors = agora.get_authors(limit=limit)
+            self.assertIsInstance(authors, list)
+            self.assertEqual(len(authors), limit)
 
-        limit = 2
-        authors = agora.get_authors(limit)
-        self.assertIsInstance(authors, list)
+    def test_get_authors_bad_limit(self):
+        """should return a list of length author_count"""
+        agora = self._Agora()
+        author_count = agora.get_author_count()
 
-        limit = -2
-        authors = agora.get_authors(limit)
-        self.assertEqual(len(authors), 1)
+        for limit in (-1, author_count + 1):
+            authors = agora.get_authors(limit=limit)
+            self.assertIsInstance(authors, list)
+            self.assertEqual(len(authors), author_count)
 
     def test_get_author(self):
+        """should return an author"""
         agora = self._Agora()
+        from agora.models import Author
+        for id in range(1, agora.get_author_count()):
+            self.assertIsInstance(agora.get_author(id), Author)
 
-        from agora import Author
-        from agora.agora import InvalidAuthor
+    def test_get_bad_author(self):
+        """should return None"""
+        agora = self._Agora()
+        author_count = agora.get_author_count()
+        for i in (-1, 0, author_count + 1):
+            self.assertIsNone(agora.get_author(i))
 
-        author = agora.get_author(0)
-        self.assertIs(author, InvalidAuthor)
-
-        author = agora.get_author(7)
-        self.assertIs(author, InvalidAuthor)
-
-        author = agora.get_author(1)
-        self.assertIsInstance(author, Author)
+    def test_get_author_repr(self):
+        agora = self._Agora()
+        for id in range(1, agora.get_author_count()):
+            self.assertIn("User %s" % id, agora.get_author(id).__repr__())
 
     def test_add_author(self):
         agora = self._Agora()
-        from agora import Author
 
         username = 'test_user'
         fullname = 'Test User'
         email = 'test_user@company.com'
-
         new_author_id = agora.add_author(username=username,
                                          fullname=fullname,
                                          email=email)
 
         test_author = agora.get_author(new_author_id)
-        self.assertIsInstance(test_author, Author)
-        # self.assertIn(title, test_author.title)
+        self.assertEqual(username, test_author.username)
 
     def test_edit_author(self):
         agora = self._Agora()
+        author_count = agora.get_author_count()
 
-        agora.edit_author(1, username='edited_user', fullname='Edited User',
-                          email='edited_user@company.com')
-        test_author = agora.get_author(1)
-        self.assertEqual('edited_user', test_author.username)
-        self.assertEqual('Edited User', test_author.fullname)
-        self.assertEqual('edited_user@company.com', test_author.email)
+        for id in range(1, author_count):
+
+            username = "edited_user_%s" % id
+            fullname = "Edited User %s" % id
+            email = "edited_user%s@example.com" % id
+            agora.edit_author(id, username=username, fullname=fullname,
+                              email=email)
+            test_author = agora.get_author(id)
+            self.assertEqual(username, test_author.username)
+            self.assertEqual(fullname, test_author.fullname)
+            self.assertEqual(email, test_author.email)
+
+    def test_edit_bad_author(self):
+        agora = self._Agora()
+        author_count = agora.get_author_count()
+        from sqlalchemy.orm.exc import NoResultFound
+
+        for id in (-1, 0, author_count + 1):
+            username = 'bad_user'
+            fullname = "Bad User"
+            email = 'bad_user@example.com'
+            with self.assertRaises(NoResultFound):
+                agora.edit_author(
+                    id,
+                    username=username,
+                    fullname=fullname,
+                    email=email)
 
     def test_delete_author(self):
         agora = self._Agora()
-        from agora.agora import InvalidAuthor
+        author_count = agora.get_author_count()
 
-        # valid id
-        id = 1
+        for id in range(1, author_count):
+            self.assertEqual(agora.delete_author(id), id)
 
-        # count = agora.get_author_count()
-        author = agora.get_author(id)
-        logger.info("test_delete_author: author: %s" % author)
-
-        result = agora.delete_author(id)
-        logger.info("test_delete_author: result: %s" % result)
-        self.assertEqual(result, id)
-
-        # invalid id
-        id = 0
-        with self.assertRaises(InvalidAuthor):
-            agora.delete_author(id)
-
-    #
-    # Ideas
-    #
-
-    def test_get_ideas_no_limit(self):
-
+    def test_delete_bad_author(self):
         agora = self._Agora()
+        author_count = agora.get_author_count()
+        from agora.exceptions import InvalidAuthor
+
+        for id in (-1, 0, author_count + 1):
+            with self.assertRaises(InvalidAuthor):
+                agora.delete_author(id)
+
+
+class AgoraIdeaTests(AgoraBase):
+
+    def test_get_idea_count(self):
+        """should return a scalar
+           equal to the number of records added in _initialize_test_db"""
+        agora = self._Agora()
+        # we should know how the idea count
+        self.assertEqual(agora.get_idea_count(), 6)
+
+    def test_get_ideas(self):
+        """should return a list of length idea_count"""
+        agora = self._Agora()
+        idea_count = agora.get_idea_count()
         ideas = agora.get_ideas()
 
-        self.assertEqual(len(ideas), 5)
+        # we should get a list and know its length
+        self.assertIsInstance(ideas, list)
+        self.assertEqual(len(ideas), idea_count)
 
     def test_get_ideas_with_limit(self):
+        """should return a list of length limit"""
         agora = self._Agora()
+        idea_count = agora.get_idea_count()
 
-        ideas = agora.get_ideas(0)
-        self.assertEqual(len(ideas), 0)
+        for limit in (0, 1, idea_count):
 
-        limit = 2
-        ideas = agora.get_ideas(limit)
-        self.assertEqual(len(ideas), limit)
+            ideas = agora.get_ideas(limit=limit)
+            self.assertIsInstance(ideas, list)
+            self.assertEqual(len(ideas), limit)
 
-        limit = -2
-        ideas = agora.get_ideas(limit)
-        self.assertEqual(len(ideas), 5)
+    def test_get_ideas_bad_limit(self):
+        """should return a list of length idea_count"""
+        agora = self._Agora()
+        idea_count = agora.get_idea_count()
+
+        for limit in (-1, idea_count + 1):
+            ideas = agora.get_ideas(limit=limit)
+            self.assertIsInstance(ideas, list)
+            self.assertEqual(len(ideas), idea_count)
 
     def test_get_idea(self):
-        from agora import Idea
-        from agora.agora import InvalidIdea
-
+        """should return an idea"""
         agora = self._Agora()
+        from agora.models import Idea
+        for id in range(1, agora.get_idea_count()):
+            self.assertIsInstance(agora.get_idea(id), Idea)
 
-        with self.assertRaises(InvalidIdea):
-            agora.get_idea(0)
+    def test_get_bad_idea(self):
+        """should return None"""
+        agora = self._Agora()
+        idea_count = agora.get_idea_count()
+        for i in (-1, 0, idea_count + 1):
+            self.assertIsNone(agora.get_idea(i))
 
-        with self.assertRaises(InvalidIdea):
-            agora.get_idea(7)
-
-        idea = agora.get_idea(1)
-        self.assertIsInstance(idea, Idea)
+    def test_get_idea_repr(self):
+        agora = self._Agora()
+        for id in range(1, agora.get_idea_count()):
+            self.assertRegexpMatches(
+                agora.get_idea(id).__repr__(), 'Idea \d+, User \d+')
 
     def test_add_idea(self):
         agora = self._Agora()
 
-        new_idea_id = agora.add_idea(title='My Test Title',
-                                     idea='My test idea',
-                                     author_id=1)
+        title = 'My Test Title'
+        idea = 'My test idea'
+        author_id = 1
+        new_idea_id = agora.add_idea(title=title,
+                                     idea=idea,
+                                     author_id=author_id)
 
-        logger.info("test_add_idea: new_idea_id: %s " % new_idea_id)
         test_idea = agora.get_idea(new_idea_id)
-        self.assertIn('My Test Title', test_idea.title)
+        self.assertEqual(title, test_idea.title)
+        self.assertEqual(idea, test_idea.idea)
 
     def test_edit_idea(self):
         agora = self._Agora()
+        idea_count = agora.get_idea_count()
 
-        agora.edit_idea(1, title='Edited Title',
-                        idea='This is the edited first idea.')
-        test_idea = agora.get_idea(1)
-        self.assertIn('This is the edited first idea', test_idea.idea)
+        for id in range(1, idea_count):
+
+            agora.edit_idea(id, title='Edited Title',
+                            idea='This is the edited idea.')
+            test_idea = agora.get_idea(id)
+            self.assertEqual('Edited Title', test_idea.title)
+            self.assertEqual('This is the edited idea.', test_idea.idea)
+
+    def test_edit_bad_idea(self):
+        agora = self._Agora()
+        idea_count = agora.get_idea_count()
+        from sqlalchemy.orm.exc import NoResultFound
+
+        for id in (-1, 0, idea_count + 1):
+            with self.assertRaises(NoResultFound):
+                agora.edit_idea(id, title='Bad Edited Title',
+                                idea='This is the edited bad idea.')
 
     def test_delete_idea(self):
         agora = self._Agora()
+        idea_count = agora.get_idea_count()
 
-        id = 1
+        for id in range(1, idea_count):
+            self.assertEqual(agora.delete_idea(id), id)
 
-        idea = agora.get_idea(id)
-        logger.info("test_delete_idea: idea: %s" % idea)
+    def test_delete_bad_idea(self):
+        agora = self._Agora()
+        idea_count = agora.get_idea_count()
+        from agora.exceptions import InvalidIdea
 
-        result = agora.delete_idea(id)
-        logger.info("test_delete_idea: result: %s" % result)
-        self.assertEqual(result, id)
-
-        returned = agora.delete_idea(0)
-        from agora.agora import InvalidIdea
-        self.assertIs(InvalidIdea, returned)
+        for id in (-1, 0, idea_count + 1):
+            with self.assertRaises(InvalidIdea):
+                agora.delete_idea(id)

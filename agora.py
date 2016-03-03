@@ -1,12 +1,8 @@
-import transaction
-
-from .models import Idea, Author
-from .exceptions import *
+from agora.logging import logger
+from agora.models import Idea, Author
+from agora.exceptions import *
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-
-from logging import getLogger
-logger = getLogger(__name__)
 
 authors_limit = 5
 ideas_limit = 5
@@ -14,244 +10,253 @@ ideas_limit = 5
 
 class AgoraBase():
 
-    # def _get_item_count(self, table):
-    #     try:
-    #         item_count = self.session.query(table).count()
-    #     except:
-    #         raise
-
-    #     return item_count
-
-    def _get_item_by_id(self, table, id):
+    def _test_session(self):
+        engine = self.session.get_bind()
+        table_names = engine.table_names()
         try:
-            result = self.session.query(table).filter_by(id=id).one()
-        except NoResultFound:
-            raise InvalidItem
+            assert 'ideas' in table_names and 'authors' in table_names
+        except:
+            raise InvalidSession
 
-        return result
-
-    def _get_item_by_filter(self, table, **filters):
+    def _session_query(self, table, filters={}, limit=None, order=None):
+        """return result of query
+           (ultimately, we will )
+           swallow exceptions other than NoResultFound and MultipleResultsFound
+           """
         try:
-            result = self.session.query(table).filter_by(**filters).one()
-        except NoResultFound:
+            result = self.session.query(
+                table).filter_by(**filters).order_by(order).limit(limit)
+        except (NoResultFound, MultipleResultsFound):
             raise
+        except Exception as e:
+            logger.info("_session_query: Exception: %s" % str(e))
+            raise
+            pass
+        else:
+            return result
+
+    def _get_item_count(self, table):
+        """return count of items in table"""
+        try:
+            item_count = self._session_query(table).count()
+        except:
+            raise
+
+        return item_count
+
+    def _get_item(self, table, id):
+        """return item identified by table and id
+           return None if no records
+           raise MultipleResultsFound if multiple records"""
+        filters = {'id': id}
+        try:
+            item = self._session_query(table, filters=filters).one()
+        except NoResultFound:
+            return None
         except MultipleResultsFound:
             raise
-        return result
+        return item
 
-    def _get_items(self, table, limit):
+    def _get_items(self, table, filters={}, limit=None, order=None):
+        """return a list of items from table"""
         items = []
-        rows = self.session.query(table).order_by(table.created).limit(limit)
-        for row in rows:
+        result = self._session_query(
+            table, filters=filters, limit=limit, order=order)
+        for row in result:
             items.append(row)
         return items
 
-    def _get_items_by_filter(self, table, **filters):
-        pass
-
     def _add_item(self, table, filters, **kwargs):
-        with transaction.manager:
+        """add an item to table with values in kwargs
+                retreive new item with filters
+           return new item id"""
+        try:
+            # 2 statements in a try :(
             new_item = table(**kwargs)
             self.session.add(new_item)
+        except Exception as e:
+            # swallow the Exception, we will fail below and raise AddItem
+            logger.info("_add_item: Exception: %s" % str(e))
+        else:
+            self.session.commit()
+        # try to get our new item
         try:
-            item = self.session.query(table).filter_by(**filters).one()
-        except:
-            raise AddItem
+            item = self._session_query(table, filters).one()
+        except NoResultFound:
+            raise AddItem('No Result Found')
+        except MultipleResultsFound:
+            raise AddItem('Multiple Results Found')
         return item.id
 
     def _delete_item(self, table, id):
-        with transaction.manager:
-            try:
-                self.session.query(table).filter_by(id=id).one()
-            except NoResultFound:
-                raise InvalidItem
-            else:
-                self.session.query(table).filter_by(id=id).delete(
-                    synchronize_session='fetch')
-
+        """return item from table"""
+        # see if we have item
+        filters = {'id': id}
         try:
-            self._get_item_by_id(table, id)
-        except:
+            self._session_query(table, filters).one()
+        except NoResultFound:
+            raise InvalidItem
+        else:
+            # try to delete item
+            try:
+                # we cannot call .delete() on _session_query because order_by
+                self.session.query(table).filter_by(id=id).delete()
+            except Exception as e:
+                logger.info("_delete_item: Exception: %s" % str(e))
+            else:
+                self.session.commit()
+
+        # see if the delete worked
+        try:
+            self._session_query(table, filters).one()
+        except NoResultFound:
             # delete worked
             return id
         else:
             # idea is still in the database, so delete failed
             raise DeleteItem
 
+    def _edit_item(self, table, id, **kwargs):
+        """edit an item"""
+        filters = {'id': id}
+        try:
+            item = self._session_query(table, filters=filters).one()
+        except (NoResultFound, MultipleResultsFound):
+            raise
+        else:
+            for (key, value) in kwargs.items():
+                if hasattr(item, key):
+                    try:
+                        setattr(item, key, value)
+                    except:
+                        raise EditItem
+        return_item = self._session_query(table, filters=filters).one()
+        return return_item.id
+
 
 class Agora(AgoraBase):
 
-    """python 'api' to database of ideas
-       ideas have an author"""
+    """a forum for ideas"""
 
     def __init__(self, session):
         """add the SQLAlchemy database session"""
         self.session = session
         self.authors_limit = authors_limit
         self.ideas_limit = ideas_limit
+        self._test_session()
 
     #
     # Authors
     #
 
-    def get_authors(self, limit=5):
-        if not isinstance(limit, int) or limit < 0:
-            limit = self.authors_limit
-
-        try:
-            authors = self._get_items(Author, limit)
-        except Exception as e:
-            logger.info("get_authors: except: e: %s" % e)
-            raise
-        logger.info("get_authors: type(authors): %s " % type(authors))
-        return authors
+    def get_author_count(self):
+        return self._get_item_count(Author)
 
     def get_author(self, id):
-        try:
-            author = self._get_item_by_id(Author, id)
-        except:
-            return InvalidAuthor
+        """return the requested author"""
+        return self._get_item(Author, id)
 
-        return author
+    def get_authors(self, filters={}, limit=None, order=None):
+        """return a list of authors
+           with optional filters, limit, and order"""
+        return self._get_items(
+            Author, filters=filters, limit=limit, order=order)
 
     def add_author(self, username, fullname, email):
         filters = {'username': username}
         kwargs = {'username': username, 'fullname': fullname, 'email': email}
 
         # check whether the author already exists
-        try:
-            self._get_item_by_filter(Author, **filters)
-        except NoResultFound:
-            # the author does not already exist, we can attempt to add it below
-            pass
-        else:
-            # the author already exists
+        if len(self._get_items(Author, filters=filters)) > 0:
             raise DuplicateAuthor
 
         # the author does not already exist, attempt to add the author
         try:
             new_author_id = self._add_item(Author, filters, **kwargs)
-        except:
+        except AddItem:
             raise AddAuthor
 
         return new_author_id
 
     def edit_author(self, id, **kwargs):
         """edit an author already in the database"""
-        with transaction.manager:
-            author = self.session.query(Author).filter_by(id=id).one()
-            for (key, value) in kwargs.items():
-                if hasattr(author, key):
-                    try:
-                        setattr(author, key, value)
-                    except:
-                        raise EditAuthor
-        test_author = self.session.query(Author).filter_by(id=id).one()
-        return test_author.id
+        try:
+            self._edit_item(Author, id, **kwargs)
+        except (NoResultFound, MultipleResultsFound):
+            raise
+        except EditItem:
+            raise EditAuthor
+        else:
+            return id
 
     def delete_author(self, id):
         """delete an idea from the database"""
 
         try:
             self._delete_item(Author, id)
-        except DeleteItem:
-            raise DeleteAuthor
         except InvalidItem:
             raise InvalidAuthor
+        except DeleteItem:
+            raise DeleteAuthor
         return id
 
     #
     # Ideas
     #
 
-    def get_ideas(self, limit=5):
-        """list of most recent ideas"""
-        if not isinstance(limit, int) or limit < 0:
-            limit = self.ideas_limit
-
-        try:
-            ideas = self._get_items(Idea, limit)
-        except Exception as e:
-            logger.info("get_ideas: except: e: %s" % e)
-            raise e
-        return ideas
+    def get_idea_count(self):
+        """return a count of ideas"""
+        return self._get_item_count(Idea)
 
     def get_idea(self, id):
         """return the requested idea"""
-        try:
-            idea = self._get_item_by_id(Idea, id)
-        except InvalidItem:
-            raise InvalidIdea
+        return self._get_item(Idea, id)
 
-        return idea
+    def get_ideas(self, filters={}, limit=None, order=None):
+        """return a list of ideas"""
+        return self._get_items(Idea, filters=filters, limit=limit, order=order)
 
     def add_idea(self, title, idea, author_id):
         """add an idea to the database
-           return id of new entry
-           return DuplicateIdea if idea already exists
-           return AddIdea if an error occurs"""
+           return id of new entry"""
 
-        try:
-            author = self._get_item_by_id(Author, author_id)
-        except InvalidItem:
-            raise InvalidAuthor
-        filters = {'title': title}
-        kwargs = {'title': title,
-                  'idea': idea,
-                  'author': author,
-                  }
+        author = self.get_author(author_id)
+        filters = {'author': author, 'title': title}
+        kwargs = {'title': title, 'idea': idea, 'author': author}
 
         # check whether the idea already exists
-        try:
-            self._get_item_by_filter(Idea, **filters)
-        except NoResultFound:
-            # the idea does not already exist, we can attempt to add it below
-            pass
-        else:
-            # the idea already exists
+        if len(self._get_items(Idea, filters=filters)) > 0:
             raise DuplicateIdea
 
-        # the idea does not already exist, attempt to add the idea
+        # add the idea
         try:
             new_idea_id = self._add_item(Idea, filters, **kwargs)
-        except InvalidItem:
-            raise InvalidIdea
-        except Exception as e:
-            logger.info("add_idea: Exception: %s" % str(e))
-            raise
+        except AddItem:
+            raise AddIdea
 
         return new_idea_id
 
     def edit_idea(self, id, **kwargs):
         """edit an idea already in the database"""
-        with transaction.manager:
-            idea = self.session.query(Idea).filter_by(id=id).one()
-            for (key, value) in kwargs.items():
-                logger.info("edit_idea: key: %s, value: %s " % (key, value))
-                if hasattr(idea, key):
-                    try:
-                        setattr(idea, key, value)
-                    except:
-                        # not sure what we'll ultimately do here
-                        return EditIdea
-        test_idea = self.session.query(Idea).filter_by(id=id).one()
-        return test_idea.id
+        try:
+            self._edit_item(Idea, id, **kwargs)
+        except (NoResultFound, MultipleResultsFound):
+            raise
+        except EditItem:
+            raise EditIdea
+        else:
+            return id
 
     def delete_idea(self, id):
         """delete an idea from the database"""
 
         try:
-            result = self._delete_item(Idea, id)
-
+            self._delete_item(Idea, id)
         except InvalidItem:
-            # not sure what we'll ultimately do here
-            return InvalidIdea
-
+            raise InvalidIdea
         except DeleteItem:
-            # not sure what we'll ultimately do here
-            return DeleteIdea
+            raise DeleteIdea
+        else:
+            return id
 
-        # result should be the same as id
-        return result
-
-__all__ = ['Agora']
+__all__ = ['Agora', ]
