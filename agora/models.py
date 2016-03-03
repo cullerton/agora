@@ -31,11 +31,11 @@ class Mixin(object):
 class Idea(Mixin, Base):
     """"""
     __tablename__ = 'ideas'
-    title = Column(Text)
-    idea = Column(Text)
+    title = Column(Text, nullable=False)
+    idea = Column(Text, nullable=False)
     visible = Column(Boolean, default=False)
     modified = Column(DateTime, default=datetime.now())
-    author_id = Column(Integer, ForeignKey('authors.id'))
+    author_id = Column(Integer, ForeignKey('authors.id'), nullable=False)
 
     UniqueConstraint('title', 'author_id', name='unique_title')
 
