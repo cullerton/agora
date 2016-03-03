@@ -1,4 +1,4 @@
-class DuplicateItem(Exception):
+class InvalidSession(Exception):
     pass
 
 
@@ -57,6 +57,8 @@ class EditIdea(Exception):
 class EditAuthor(Exception):
     pass
 
-__all__ = ['AddItem', 'AddIdea', 'AddAuthor', 'DeleteItem', 'DeleteIdea',
-           'DeleteAuthor', 'DuplicateIdea', 'DuplicateAuthor', 'EditIdea',
-           'EditAuthor', 'InvalidItem', 'InvalidIdea', 'InvalidAuthor']
+__all__ = ['InvalidSession', 'InvalidItem', 'InvalidIdea', 'InvalidAuthor',
+           'AddItem', 'EditItem', 'DeleteItem',
+           'AddIdea', 'EditIdea', 'DeleteIdea', 'DuplicateIdea',
+           'AddAuthor', 'EditAuthor', 'DeleteAuthor', 'DuplicateAuthor',
+           ]
