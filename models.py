@@ -22,14 +22,18 @@ from sqlalchemy.orm import relationship
 Base = declarative_base()
 
 
-class Idea(Base):
+class Mixin(object):
+
+    id = Column(Integer, Sequence('idea_id_seq'), primary_key=True)
+    created = Column(DateTime, default=datetime.now())
+
+
+class Idea(Mixin, Base):
     """"""
     __tablename__ = 'ideas'
-    id = Column(Integer, Sequence('idea_id_seq'), primary_key=True)
     title = Column(Text)
     idea = Column(Text)
     visible = Column(Boolean, default=False)
-    created = Column(DateTime, default=datetime.now())
     modified = Column(DateTime, default=datetime.now())
     author_id = Column(Integer, ForeignKey('authors.id'))
 
@@ -51,15 +55,13 @@ class Idea(Base):
                 'author': str(self.author)}
 
 
-class Author(Base):
+class Author(Mixin, Base):
     """"""
     __tablename__ = 'authors'
-    id = Column(Integer, Sequence('author_id_seq'), primary_key=True)
     username = Column(Text, unique=True)
     fullname = Column(Text, default='Anonymous')
     email = Column(Text)
     active = Column(Boolean, default=False)
-    created = Column(DateTime, default=datetime.now())
 
     ideas = relationship("Idea", order_by=Idea.id, back_populates="author")
 
