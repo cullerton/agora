@@ -1,3 +1,3 @@
-from .agora import Agora
+from agora.agora import Agora
 
 __all__ = ('Agora')
