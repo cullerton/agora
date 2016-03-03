@@ -1,3 +1,7 @@
+=====
+Agora
+=====
+
 Agora is a forum for ideas. It is a simple, blog-like application, with support for multiple authors.
 
 It is developed for a class curriculum, and is not intended for real deployment, although it could serve some purpose.
@@ -5,6 +9,10 @@ It is developed for a class curriculum, and is not intended for real deployment,
 There are two classes--Author and Idea. A forum can have zero or more authors. Each author can have zero or more ideas.
 
 Agora uses SQLAlchemy for a persistence layer. You need a valid SQLAlchemy session to initialize agora.
+
+-----
+Usage
+-----
 
 Set up SQLAlchemy session.
 
