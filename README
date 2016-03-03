@@ -19,10 +19,10 @@ Set up SQLAlchemy session.
 >>> DBSession = scoped_session(sessionmaker())
 >>> DBSession.configure(bind=engine)
 
-Agora.
+Create a forum.
 
->>> from agora import Agora
->>> forum = Agora(DBSession)
+>>> from agora import Forum
+>>> forum = Forum(DBSession)
 
 A new forum has no authors or ideas.
 >>> forum.get_authors()

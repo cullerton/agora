@@ -134,7 +134,7 @@ class AgoraBase():
         return return_item.id
 
 
-class Agora(AgoraBase):
+class Forum(AgoraBase):
 
     """a forum for ideas"""
 
