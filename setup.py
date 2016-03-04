@@ -1,13 +1,11 @@
 from setuptools import setup, find_packages
 
-# packages = [
-#     'cullerton.agora',
-#     'cullerton.agorapi',
-# ]
+packages = [
+    'cullerton.agora',
+]
 
 requires = [
     'sqlalchemy',
-    'pyramid',
 ]
 
 setup(
@@ -23,8 +21,6 @@ setup(
     keywords=['academic', 'simple', 'example'],
     classifiers=[],
     entry_points="""\
-    [paste.app_factory]
-    main = cullerton.agorapi:main
     [console_scripts]
     initialize_agora_db = cullerton.agora.initialize_db:main
     """,
