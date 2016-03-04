@@ -1,6 +1,6 @@
-from agora.logging import logger
-from agora.models import Idea, Author
-from agora.exceptions import *
+from cullerton.agora.logging import logger
+from cullerton.agora.models import Idea, Author
+from cullerton.agora.exceptions import *
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 

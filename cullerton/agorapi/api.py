@@ -1,8 +1,8 @@
 import json
 
-from agora import Forum
-from agora.session import DBSession
-from agora.exceptions import *
+from cullerton.agora import Forum
+from cullerton.agora.session import DBSession
+from cullerton.agora.exceptions import *
 
 from pyramid.view import view_config
 from pyramid.response import Response

@@ -5,7 +5,7 @@ logger = getLogger(__name__)
 
 
 def _populate_test_db(session):
-    from agora.models import Author, Idea
+    from cullerton.agora.models import Author, Idea
 
     # add 2 authors
     [session.add(Author(
@@ -25,7 +25,7 @@ def _populate_test_db(session):
 
 def _initialize_test_db():
 
-    from agora.models import Base
+    from cullerton.agora.models import Base
 
     from sqlalchemy import create_engine
     from sqlalchemy.orm import scoped_session, sessionmaker
@@ -50,7 +50,7 @@ class AgoraBase(unittest.TestCase):
         self.session.remove()
 
     def _Forum(self):
-        from agora import Forum
+        from cullerton.agora import Forum
         return Forum(self.session)
 
 
@@ -95,7 +95,7 @@ class AgoraAuthorTests(AgoraBase):
     def test_get_author(self):
         """should return an author"""
         forum = self._Forum()
-        from agora.models import Author
+        from cullerton.agora.models import Author
         for id in range(1, forum.get_author_count()):
             self.assertIsInstance(forum.get_author(id), Author)
 
@@ -166,7 +166,7 @@ class AgoraAuthorTests(AgoraBase):
     def test_delete_bad_author(self):
         forum = self._Forum()
         author_count = forum.get_author_count()
-        from agora.exceptions import InvalidAuthor
+        from cullerton.agora.exceptions import InvalidAuthor
 
         for id in (-1, 0, author_count + 1):
             with self.assertRaises(InvalidAuthor):
@@ -216,7 +216,7 @@ class AgoraIdeaTests(AgoraBase):
     def test_get_idea(self):
         """should return an idea"""
         forum = self._Forum()
-        from agora.models import Idea
+        from cullerton.agora.models import Idea
         for id in range(1, forum.get_idea_count()):
             self.assertIsInstance(forum.get_idea(id), Idea)
 
@@ -279,7 +279,7 @@ class AgoraIdeaTests(AgoraBase):
     def test_delete_bad_idea(self):
         forum = self._Forum()
         idea_count = forum.get_idea_count()
-        from agora.exceptions import InvalidIdea
+        from cullerton.agora.exceptions import InvalidIdea
 
         for id in (-1, 0, idea_count + 1):
             with self.assertRaises(InvalidIdea):
