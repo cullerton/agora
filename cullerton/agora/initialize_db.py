@@ -1,6 +1,6 @@
 import os
 import sys
-import transaction
+# import transaction
 
 from sqlalchemy import create_engine
 
@@ -29,20 +29,18 @@ def main(argv=sys.argv):
     Base.metadata.create_all(engine)
 
     if seed == 'seed':
-        with transaction.manager:
-            author = Author(username='misinformation',
-                            fullname='Miss Information',
-                            email='misinformation@example.com')
-            DBSession.add(author)
+        author = Author(username='misinformation',
+                        fullname='Miss Information',
+                        email='misinformation@example.com')
+        DBSession.add(author)
 
-        with transaction.manager:
-            author = DBSession.query(Author).filter_by(
-                username='misinformation').one()
-            idea = Idea(title='First Idea!',
-                        idea='This is my idea.',
-                        author=author)
-            DBSession.add(idea)
-            idea = Idea(title='Another Idea!',
-                        idea='This is another idea.',
-                        author=author)
-            DBSession.add(idea)
+        author = DBSession.query(Author).filter_by(
+            username='misinformation').one()
+        idea = Idea(title='First Idea!',
+                    idea='This is my idea.',
+                    author=author)
+        DBSession.add(idea)
+        idea = Idea(title='Another Idea!',
+                    idea='This is another idea.',
+                    author=author)
+        DBSession.add(idea)
