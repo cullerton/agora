@@ -21,23 +21,12 @@ class AgoraBase():
     def _session_query(self, table, filters={}, limit=None, order=None):
         """return result of query
            """
-        try:
-            result = self.session.query(
-                table).filter_by(**filters).order_by(order).limit(limit)
-        except Exception as e:
-            logger.info("_session_query: Exception: %s" % str(e))
-            pass
-        else:
-            return result
+        return self.session.query(
+            table).filter_by(**filters).order_by(order).limit(limit)
 
     def _get_item_count(self, table):
         """return count of items in table"""
-        try:
-            item_count = self._session_query(table).count()
-        except:
-            raise
-
-        return item_count
+        return self._session_query(table).count()
 
     def _get_item(self, table, id):
         """return item identified by table and id"""
@@ -63,15 +52,11 @@ class AgoraBase():
         """add an item to table with values in kwargs
                 retreive new item with filters
            return new item id"""
-        try:
-            # 2 statements in a try :(
-            new_item = table(**kwargs)
-            self.session.add(new_item)
-        except Exception as e:
-            # swallow the Exception, we will fail below and raise AddItem
-            logger.info("_add_item: Exception: %s" % str(e))
-        else:
-            self.session.commit()
+
+        new_item = table(**kwargs)
+        self.session.add(new_item)
+        self.session.commit()
+
         # try to get our new item
         try:
             item = self._session_query(table, filters).one()
@@ -237,11 +222,8 @@ class Forum(AgoraBase):
                 raise DuplicateIdea
 
             # add the idea
-            try:
-                new_idea_id = self._add_item(Idea, filters, **kwargs)
-            except AddItem:
-                raise AddIdea
-
+            new_idea_id = self._add_item(Idea, filters, **kwargs)
+            # return the id
             return new_idea_id
 
         else:
