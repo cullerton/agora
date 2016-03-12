@@ -10,7 +10,7 @@ requires = [
 
 setup(
     name='cullerton.agora',
-    version="0.0.1",
+    version="0.0.2",
     packages=find_packages(),
     namespace_packages=['cullerton'],
     install_requires=requires,
@@ -18,7 +18,7 @@ setup(
     author_email='michaelc@cullerton.com',
     description='A forum for ideas',
     url='https://github.com/cullerton/cullerton.agora',
-    download_url='https://github.com/cullerton/cullerton.agora/tarball/0.0.1',
+    download_url='https://github.com/cullerton/cullerton.agora/tarball/0.0.2',
     keywords=['academic', 'simple', 'example'],
     classifiers=[],
     entry_points="""\
