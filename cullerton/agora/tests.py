@@ -54,6 +54,20 @@ class AgoraBase(unittest.TestCase):
         return Forum(self.session)
 
 
+class AgoraSessionTests(unittest.TestCase):
+
+    def test_invalid_session(self):
+        from cullerton.agora import Forum
+        from cullerton.agora.exceptions import InvalidSession
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import scoped_session, sessionmaker
+        engine = create_engine('sqlite:///:memory:')
+        DBSession = scoped_session(sessionmaker())
+        DBSession.configure(bind=engine)
+        with self.assertRaises(InvalidSession):
+            Forum(DBSession)
+
+
 class AgoraAuthorTests(AgoraBase):
 
     def test_get_author_count(self):
@@ -123,6 +137,18 @@ class AgoraAuthorTests(AgoraBase):
 
         test_author = forum.get_author(new_author_id)
         self.assertEqual(username, test_author.username)
+
+    def test_add_author_fail(self):
+        from cullerton.agora.exceptions import AddAuthor
+        forum = self._Forum()
+
+        username = ''
+        fullname = 'Test User Fail'
+        email = 'test_user_fail@company.com'
+        with self.assertRaises(AddAuthor):
+            forum.add_author(username=username,
+                             fullname=fullname,
+                             email=email)
 
     def test_edit_author(self):
         forum = self._Forum()
@@ -246,6 +272,18 @@ class AgoraIdeaTests(AgoraBase):
         test_idea = forum.get_idea(new_idea_id)
         self.assertEqual(title, test_idea.title)
         self.assertEqual(idea, test_idea.idea)
+
+    def test_add_idea_fail(self):
+        from cullerton.agora.exceptions import AddIdea
+        forum = self._Forum()
+
+        title = ''
+        idea = 'My failing test idea'
+        author_id = 1
+        with self.assertRaises(AddIdea):
+            forum.add_idea(title=title,
+                           idea=idea,
+                           author_id=author_id)
 
     def test_edit_idea(self):
         forum = self._Forum()
