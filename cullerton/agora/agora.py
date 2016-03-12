@@ -10,7 +10,7 @@ ideas_limit = 5
 
 class AgoraBase():
 
-    def _test_session(self):
+    def _validate_session(self):
         engine = self.session.get_bind()
         table_names = engine.table_names()
         try:
@@ -20,17 +20,12 @@ class AgoraBase():
 
     def _session_query(self, table, filters={}, limit=None, order=None):
         """return result of query
-           (ultimately, we will )
-           swallow exceptions other than NoResultFound and MultipleResultsFound
            """
         try:
             result = self.session.query(
                 table).filter_by(**filters).order_by(order).limit(limit)
-        except (NoResultFound, MultipleResultsFound):
-            raise
         except Exception as e:
             logger.info("_session_query: Exception: %s" % str(e))
-            raise
             pass
         else:
             return result
@@ -45,9 +40,7 @@ class AgoraBase():
         return item_count
 
     def _get_item(self, table, id):
-        """return item identified by table and id
-           return None if no records
-           raise MultipleResultsFound if multiple records"""
+        """return item identified by table and id"""
         filters = {'id': id}
         try:
             item = self._session_query(table, filters=filters).one()
@@ -84,8 +77,6 @@ class AgoraBase():
             item = self._session_query(table, filters).one()
         except NoResultFound:
             raise AddItem('No Result Found')
-        except MultipleResultsFound:
-            raise AddItem('Multiple Results Found')
         return item.id
 
     def _delete_item(self, table, id):
@@ -143,7 +134,7 @@ class Forum(AgoraBase):
         self.session = session
         self.authors_limit = authors_limit
         self.ideas_limit = ideas_limit
-        self._test_session()
+        self._validate_session()
 
     #
     # Authors
@@ -163,20 +154,23 @@ class Forum(AgoraBase):
             Author, filters=filters, limit=limit, order=order)
 
     def add_author(self, username, fullname, email):
-        filters = {'username': username}
-        kwargs = {'username': username, 'fullname': fullname, 'email': email}
+        if username:
+            filters = {'username': username}
+            kwargs = {'username': username, 'fullname': fullname, 'email': email}
 
-        # check whether the author already exists
-        if len(self._get_items(Author, filters=filters)) > 0:
-            raise DuplicateAuthor
+            # check whether the author already exists
+            if len(self._get_items(Author, filters=filters)) > 0:
+                raise DuplicateAuthor
 
-        # the author does not already exist, attempt to add the author
-        try:
-            new_author_id = self._add_item(Author, filters, **kwargs)
-        except AddItem:
+            # the author does not already exist, attempt to add the author
+            try:
+                new_author_id = self._add_item(Author, filters, **kwargs)
+            except AddItem:
+                raise AddAuthor
+
+            return new_author_id
+        else:
             raise AddAuthor
-
-        return new_author_id
 
     def edit_author(self, id, **kwargs):
         """edit an author already in the database"""
@@ -190,15 +184,27 @@ class Forum(AgoraBase):
             return id
 
     def delete_author(self, id):
-        """delete an idea from the database"""
+        """delete an author
+           delete all the author ideas first"""
 
-        try:
-            self._delete_item(Author, id)
-        except InvalidItem:
-            raise InvalidAuthor
-        except DeleteItem:
-            raise DeleteAuthor
+        if self.get_author(id):
+            self.delete_author_ideas(id)
+            try:
+                self._delete_item(Author, id)
+            except DeleteItem:
+                raise DeleteAuthor
+        else:
+                raise InvalidAuthor
         return id
+
+    def delete_author_ideas(self, id):
+        """delete all the ideas for an author"""
+
+        if self.get_author(id):
+            filters = {'author': self.get_author(id)}
+            ideas = self.get_ideas(filters=filters)
+            for idea in ideas:
+                self.delete_idea(idea.id)
 
     #
     # Ideas
@@ -220,21 +226,26 @@ class Forum(AgoraBase):
         """add an idea to the database
            return id of new entry"""
 
-        author = self.get_author(author_id)
-        filters = {'author': author, 'title': title}
-        kwargs = {'title': title, 'idea': idea, 'author': author}
+        if title:
 
-        # check whether the idea already exists
-        if len(self._get_items(Idea, filters=filters)) > 0:
-            raise DuplicateIdea
+            author = self.get_author(author_id)
+            filters = {'author': author, 'title': title}
+            kwargs = {'title': title, 'idea': idea, 'author': author}
 
-        # add the idea
-        try:
-            new_idea_id = self._add_item(Idea, filters, **kwargs)
-        except AddItem:
+            # check whether the idea already exists
+            if len(self._get_items(Idea, filters=filters)) > 0:
+                raise DuplicateIdea
+
+            # add the idea
+            try:
+                new_idea_id = self._add_item(Idea, filters, **kwargs)
+            except AddItem:
+                raise AddIdea
+
+            return new_idea_id
+
+        else:
             raise AddIdea
-
-        return new_idea_id
 
     def edit_idea(self, id, **kwargs):
         """edit an idea already in the database"""
